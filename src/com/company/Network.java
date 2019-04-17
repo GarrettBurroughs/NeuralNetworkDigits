@@ -17,8 +17,8 @@ public class Network {
         for(int i = 0; i < layers - 1; i++){
             weights[i] = new Matrix(properties[i], properties[i + 1]);
             biases[i] = new Matrix(1, properties[i + 1]);
-            weights[i].randomize(-1, 1);
-            biases[i].randomize(-1, 1);
+            weights[i].randomize(-1, 1, .01);
+            biases[i].randomize(-1, 1, .01);
         }
     }
 
@@ -85,12 +85,14 @@ public class Network {
             for(int j = 0; j < deltaNablaB.size(); j++){
                 nabla_b.set(j, nabla_b.get(j).add(deltaNablaB.get(j)));
             }for(int j = 0; j < deltaNablaW.size(); j++){
-                System.out.println(j);
-                System.out.println(nabla_w.get(j));
-                System.out.println(deltaNablaW.get(j));
+//                System.out.println(j);
+//                System.out.println(nabla_w.get(j));
+//                System.out.println(deltaNablaW.get(j));
+                //System.out.println(deltaNablaW.get(1));
                 nabla_w.set(j, nabla_w.get(j).add(deltaNablaW.get(j)));
             }
         }
+        //System.out.println(nabla_w.get(1));
         // Apply Changes
         for(int i = 0; i < weights.length; i++){
             weights[i] = weights[i].add(nabla_w.get(i).elementWise((x) -> x * (learningRate/batch.size()))); //elementWiseAdd(-learningRate / batch.size()).elementWiseMultiply(nabla_w.get(i));
@@ -116,31 +118,47 @@ public class Network {
         for(Matrix b : biases)  nabla_b.add(b.zero());
         for(Matrix w : weights) nabla_w.add(w.zero());
         Matrix activation = prepareInput(input);
-        Matrix tMatrix = prepareTargetInput(target);
+        Matrix y = prepareTargetInput(target);
         List<Matrix> activations = new ArrayList<>();
         activations.add(activation);
         List<Matrix> zs = new ArrayList<>();
         for(int i = 0; i < layers - 1; i++){
             Matrix z = weights[i].multiply(activation).add(biases[i]);
+//            System.out.println("Layer: " + i);
+//            System.out.println(weights[i]);
+//            System.out.println(activation.transpose());
+//            System.out.println(biases[i]);
+//            System.out.println(z);
             zs.add(z);
             activation = z.elementWise(Network::sigmoid);
             activations.add(activation);
         }
         int len = activations.size();
 
-        // Calculate backPropagating error
-        Matrix delta = tMatrix.subtract(activations.get(len - 1)).elementWiseMultiply(zs.get(zs.size() - 1).elementWise(Network::sigmoidPrime)).elementWise(x -> -x);
+        // Calculate backPropagating error zs.get(zs.size() - 1)
+        Matrix delta = y.subtract(activations.get(len - 1)).elementWiseMultiply(zs.get(zs.size() - 1).elementWise(Network::sigmoidPrime)).elementWise(x -> -x);
+        //System.out.println(delta);
         // Store changes
         nabla_b.set(nabla_b.size() - 1, delta);
         nabla_w.set(nabla_w.size() - 1, delta.multiply(activations.get(len - 2)).transpose());
         // Continue Propagating
-        for(int l = 2; l < layers; l++){
-            Matrix z = zs.get(zs.size() - l);
+        for(int l = layers - 2; l >= 1; l--){
+            //System.out.println(delta);
+            Matrix z = zs.get(l - 1);
             Matrix sp = z.elementWise(Network::sigmoidPrime);
-            delta = weights[weights.length - l + 1].transpose().multiply(delta).elementWiseMultiply(sp);
-            nabla_b.set(nabla_b.size() - l, delta);
-            nabla_w.set(nabla_w.size() - l, delta.multiply(activations.get(len - l - 1).transpose()));
+            delta = weights[l].transpose().multiply(delta).elementWiseMultiply(sp);
+//            System.out.println("Activity");
+//            System.out.println(z);
+//            System.out.println("Prime Activity");
+//            System.out.println(sp);
+            nabla_b.set(l, delta);
+            // System.out.println(delta.multiply(activations.get(l - 1).transpose()));
+            // System.out.println(delta);
+            // System.out.println(activations.get(l - 1));
+            System.out.println(nabla_w.size());
+            nabla_w.set(l, delta.multiply(activations.get(l + 1).transpose()));
         }
+
         return new List[]{nabla_b, nabla_w};
     }
 //    public Matrix costDerivative(Matrix activation){

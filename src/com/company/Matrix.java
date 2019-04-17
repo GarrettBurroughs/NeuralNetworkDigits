@@ -19,10 +19,10 @@ public class Matrix {
         this.data = data;
     }
 
-    public void randomize(int low, int high){
+    public void randomize(int low, int high, double scale){
         for(int i = 0; i < height; i++){
             for(int j = 0; j < length; j++){
-                data[i][j] = ((high - low) * Math.random()) + low;
+                data[i][j] = (((high - low) * Math.random()) + low) * scale;
             }
         }
     }
